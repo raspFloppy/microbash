@@ -1,1 +1,22 @@
-/target
+# Rust
+/target/
+Cargo.lock
+
+# Build artifacts
+**/*.rs.bk
+
+# Generated documentation
+**/target/doc/
+
+# IDE and editor files
+/.idea/
+/.vscode/
+*.swp
+*.swo
+*.swn
+*.bak
+*.orig
+
+# OS and editor temporary files
+.DS_Store
+Thumbs.db
