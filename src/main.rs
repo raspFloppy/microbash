@@ -8,7 +8,6 @@ struct CommandLine {
     args: Vec<String>,
 }
 
-#[allow(dead_code)]
 impl CommandLine {
     fn new(input: String) -> Self {
         let mut parts = input.split_whitespace();
@@ -27,33 +26,44 @@ impl CommandLine {
         self.args.clone()
     }
 
-    fn cd_command(self) {
-        let new_dir: &Path;
-        let path: String;
-
+    fn cd_command(&self) {
         if self.args.len() > 1 {
             eprintln!("cd: too many arguments");
             return;
         }
 
-        if self.args.is_empty() {
-            path = env::var("HOME").unwrap();
-            new_dir = Path::new(&path);
-        } else {
-            path = self.args[0].clone();
-            new_dir = Path::new(&path);
+        let new_dir;
+        let path;
+
+        match self.args.first() {
+            Some(arg) if arg == "-" => {
+                path = env::var("OLDPWD").unwrap();
+                new_dir = Path::new(&path);
+                println!("{}\n", env::var("OLDPWD").unwrap());
+            }
+            Some(arg) if arg == "~" => {
+                path = env::var("HOME").unwrap();
+                new_dir = Path::new(&path);
+            }
+            Some(arg) => {
+                path = arg.clone();
+                new_dir = Path::new(&path);
+            }
+            None => {
+                path = env::var("HOME").unwrap();
+                new_dir = Path::new(&path);
+            }
         }
 
         match env::set_current_dir(new_dir).is_ok() {
-            true => {}
+            true => {
+                env::set_var("OLDPWD", env::var("PWD").unwrap());
+                env::set_var("PWD", env::current_dir().unwrap());
+            }
             false => {
                 eprintln!("cd: No such file or directory: {}", path);
             }
         }
-    }
-
-    fn exit_command() {
-        std::process::exit(0);
     }
 
     fn execute(&self) -> Result<Child, std::io::Error> {
