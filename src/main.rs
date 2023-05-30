@@ -1,5 +1,5 @@
 use std::env;
-use std::io::{self, Write};
+use std::io::{self, Read, Write};
 use std::path::Path;
 use std::process::{Child, Command};
 
@@ -8,8 +8,10 @@ struct CommandLine {
     args: Vec<String>,
 }
 
+#[allow(dead_code)]
 impl CommandLine {
     fn new(input: String) -> Self {
+        CommandLine::update_history(input.clone());
         let mut parts = input.split_whitespace();
 
         CommandLine {
@@ -66,6 +68,44 @@ impl CommandLine {
         }
     }
 
+    fn update_history(input: String) {
+        let binding = env::var("HOME").unwrap() + "/.microbash_history";
+        let history_path = binding.as_str();
+
+        if let Ok(mut file) = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(history_path)
+        {
+            match file.write(input.as_bytes()) {
+                Ok(_) => {}
+                Err(_) => {
+                    eprintln!("Couldn't write to file");
+                }
+            }
+        } else {
+            eprintln!("Couldn't open file");
+        }
+    }
+    fn history_command(&self) {
+        let binding = env::var("HOME").unwrap() + "/.microbash_history";
+        let history_path = binding.as_str();
+
+        if let Ok(mut file) = std::fs::OpenOptions::new().read(true).open(history_path) {
+            let mut contents = String::new();
+            match file.read_to_string(&mut contents) {
+                Ok(_) => {
+                    println!("History:\n{}", contents);
+                }
+                Err(_) => {
+                    eprintln!("Couldn't read file");
+                }
+            }
+        } else {
+            eprintln!("Couldn't open file");
+        }
+    }
+
     fn execute(&self) -> Result<Child, std::io::Error> {
         let command = Command::new(self.command.clone())
             .args(self.args.clone())
@@ -94,10 +134,12 @@ fn main() -> io::Result<()> {
             "cd" => {
                 cli.cd_command();
             }
+            "history" => {
+                cli.history_command();
+                continue;
+            }
             _ => {
-                if command.is_empty() {
-                    continue;
-                } else {
+                if !command.is_empty() {
                     #[allow(unused_variables)]
                     match cli.execute() {
                         Ok(child) => {
